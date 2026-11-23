@@ -1,0 +1,1108 @@
+{
+  "datasets": [
+    {
+      "name": "2a8ef62d",
+      "displayName": "Bright TV Audience Insights by Region and Demographics",
+      "queryLines": [
+        "USE CATALOG `workspace`;\n",
+        "USE SCHEMA `default`;\n",
+        "\n",
+        "select * from `workspace`.`bright_tv`.`viewership` limit 100;\n",
+        "\n",
+        "with cte1 AS (\n",
+        "SELECT UserID,\n",
+        "CASE WHEN Province = 'None' THEN 'Uncategorised'\n",
+        "     WHEN Province = ' ' THEN 'Uncategorised'\n",
+        "     ELSE Province \n",
+        "     END AS Region,\n",
+        "CASE\n",
+        "        WHEN Race IN ('other') THEN 'None'\n",
+        "        WHEN Race = ' ' THEN 'None'\n",
+        "        ELSE Race\n",
+        "    END AS Ethnic_groups, \n",
+        "\n",
+        "age,\n",
+        " CASE\n",
+        "     WHEN AGE = 0 THEN 'Infacts'\n",
+        "     WHEN AGE BETWEEN 1 AND 12 THEN 'Kids'\n",
+        "     WHEN AGE BETWEEN 13 AND 19 THEN 'Teenagers'\n",
+        "     WHEN AGE BETWEEN 20 AND 39 THEN 'Young Adults'\n",
+        "     WHEN AGE BETWEEN 40 AND 60 THEN 'Adults'\n",
+        "     WHEN AGE > 61 THEN 'PENSIONERS'\n",
+        "     end as age_groups,\n",
+        "\n",
+        " CASE WHEN Gender = ' ' THEN 'None'\n",
+        "    ELSE Gender\n",
+        "    end AS Gender,\n",
+        "\n",
+        "CASE\n",
+        "WHEN (Email IS NULL) OR (Email <> ' ') OR (Email NOT IN ('None')) THEN 1\n",
+        "ELSE 0\n",
+        "END AS email_flag,\n",
+        "\n",
+        "CASE\n",
+        "WHEN (`Social Media Handle` IS NOT NULL) OR (`Social Media Handle` = ' ') OR (`Social Media Handle` NOT IN ('None')) THEN 1\n",
+        "ELSE 0\n",
+        "END AS sm_flag\n",
+        "\n",
+        "FROM workspace.bright_tv.user_profile\n",
+        "),\n",
+        "\n",
+        "\n",
+        " cte2 AS(\n",
+        "select \n",
+        "COALESCE (userID0, userid4) AS UserID,\n",
+        "TO_DATE(RecordDate2) AS watch_date,--------------------------------------extract date from the timestamp\n",
+        "TO_CHAR(TO_DATE(RecordDate2),'yyyyMM') AS month_id,-------------------------------converts date into a string\n",
+        "\n",
+        "DATE_FORMAT(RecordDate2, 'HH:mm:ss') AS watch_time,\n",
+        "DATE_FORMAT(RecordDate2, 'EEE') AS day_of_week,\n",
+        "DAYNAME(RecordDate2) AS day_name, ------------------------------------------converts a string into a date\n",
+        "\n",
+        "CASE  WHEN DATE_FORMAT(RecordDate2, 'EEEE') IN ('Saturday', 'Sunday') THEN 'Weekend'\n",
+        "ELSE 'Weekday'\n",
+        "END AS day_classification,\n",
+        "\n",
+        "HOUR(RecordDate2) AS watch_hour,\n",
+        "\n",
+        "CASE\n",
+        "WHEN channel2 IN ('SawSee', 'Sawsee')THEN 'SawSee'\n",
+        "WHEN channel2 IN ('Supersport Live Events', 'Live on Supersport', 'SuperSport Live Events', 'DSTV Events', 'DStv Events 1') THEN 'Live Events'\n",
+        " ELSE channel2\n",
+        "END AS tv_channel,\n",
+        "\n",
+        "CASE WHEN watch_time BETWEEN '00:00:00' AND '05:59:59' THEN '01.Midnight'\n",
+        "WHEN watch_time BETWEEN '06:00:00' AND '11:59:59' THEN '02.Morning'\n",
+        "WHEN watch_time BETWEEN '12:00:00' AND '17:59:59' THEN '03.Afternoon'\n",
+        "WHEN watch_time BETWEEN '18:00:00' AND '23:59:59' THEN '04.Evening'\n",
+        "END AS time_of_day,\n",
+        "\n",
+        "DATE_FORMAT(`Duration 2`, 'HH:mm:ss') AS duration,\n",
+        "\n",
+        "CASE \n",
+        "WHEN duration BETWEEN '00:05:00' AND '00:30:00' THEN '01.Low Usage:<5- 30mins'\n",
+        "WHEN duration BETWEEN '00:30:01' AND '01:00:00' THEN '02.Medium Usage:30mins-1hr'\n",
+        "WHEN duration > '01:00:01' THEN '03.High Usage: > 1hrs'\n",
+        "ELSE '04.No usage'\n",
+        "END AS screen_time_bucket,\n",
+        "\n",
+        "CASE \n",
+        "WHEN duration <= '00:05:00' THEN 'Inactive'\n",
+        "ELSE 'Active User'\n",
+        "END AS user_flag,\n",
+        "\n",
+        "\n",
+        "MONTHNAME(RecordDate2) AS month_name\n",
+        "\n",
+        "from `workspace`.`bright_tv`.`viewership`\n",
+        ")\n",
+        "\n",
+        "\n",
+        "SELECT \n",
+        "    COALESCE(A.UserID, B.UserID) AS sub_id,\n",
+        "    A.month_id,\n",
+        "    A.day_of_week,\n",
+        "    A.day_name,\n",
+        "    A.day_classification,\n",
+        "    A.watch_hour,\n",
+        "    A.time_of_day,\n",
+        "    A.watch_date,\n",
+        "    A.month_name,\n",
+        "    A.screen_time_bucket,\n",
+        "    A.tv_channel,\n",
+        "    B.region,\n",
+        "    B.age_groups,\n",
+        "    B.ethnic_groups,\n",
+        "    B.gender,\n",
+        "    B.email_flag,\n",
+        "    B.sm_flag,\n",
+        "    A.user_flag\n",
+        "\n",
+        "FROM cte2 AS A\n",
+        "LEFT JOIN cte1 AS B\n",
+        "    ON A.UserID = B.`UserID`\n",
+        "GROUP BY ALL;"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "7be0f787",
+      "displayName": "BRIGHT TV ANALYSIS",
+      "layout": [
+        {
+          "widget": {
+            "name": "7752404b",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_2965b46248",
+                      "expression": "SUM(`sub_id`)"
+                    },
+                    {
+                      "name": "age_groups",
+                      "expression": "`age_groups`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per TV channel by Age groups",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"age_groups\",\"id\":\"column_2965b46250\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_2965b46246\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46248\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46248\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "25a933ef",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_2965b462124",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "month_id",
+                      "expression": "`month_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Monthly TV Channel Views",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"month_id\",\"id\":\"column_2965b462129\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_2965b462119\"},\"y\":[{\"column\":\"*\",\"id\":\"column_2965b462124\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462110\":{\"type\":\"column\",\"yAxis\":0},\"column_2965b462117\":{\"type\":\"column\",\"yAxis\":0},\"column_2965b462121\":{\"type\":\"column\",\"yAxis\":0},\"column_2965b462124\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "019a2afa",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "column_2965b46240",
+                      "expression": "SUM(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Region",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"region\",\"id\":\"column_2965b46238\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46240\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46240\":{\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "fbe37b71",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "column_13d9f29d15",
+                      "expression": "COUNT(`sub_id`)"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Visualization 1",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"region\",\"id\":\"column_13d9f29d17\"},\"x\":{\"column\":\"region\",\"id\":\"column_13d9f29d18\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_13d9f29d15\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_13d9f29d15\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "f2d380ba",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_2965b46257",
+                      "expression": "SUM(`sub_id`)"
+                    },
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Tv Channel by Gender",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"gender\",\"id\":\"column_2965b46259\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_2965b46254\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46257\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46257\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "abf12cdc",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_13d9f29d31",
+                      "expression": "COUNT(`sub_id`)"
+                    },
+                    {
+                      "name": "age_groups",
+                      "expression": "`age_groups`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Visualization 2",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"age_groups\",\"id\":\"column_13d9f29d37\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_13d9f29d28\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_13d9f29d31\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_13d9f29d31\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 14,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "f5ce9cb2",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "column_2965b46227",
+                      "expression": "COUNT(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Visualization 3",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"region\",\"id\":\"column_2965b46232\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46227\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46227\":{\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "2dfedaaf",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_2965b46266",
+                      "expression": "SUM(`sub_id`)"
+                    },
+                    {
+                      "name": "ethnic_groups",
+                      "expression": "`ethnic_groups`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Tv Channel by Ethnic_groups",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"ethnic_groups\",\"id\":\"column_2965b46264\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_2965b46263\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46266\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46266\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 20,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "83ac2179",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "day_name",
+                      "expression": "`day_name`"
+                    },
+                    {
+                      "name": "column_2965b46273",
+                      "expression": "SUM(`sub_id`)"
+                    },
+                    {
+                      "name": "age_groups",
+                      "expression": "`age_groups`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Subscribers per Age Group",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"age_groups\",\"id\":\"column_2965b46275\"},\"x\":{\"column\":\"day_name\",\"id\":\"column_2965b46271\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46273\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"line\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46273\":{\"type\":\"line\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "b2efa78a",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "tv_channel",
+                      "expression": "`tv_channel`"
+                    },
+                    {
+                      "name": "column_2965b46295",
+                      "expression": "COUNT(`sub_id`)"
+                    },
+                    {
+                      "name": "day_of_week",
+                      "expression": "`day_of_week`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Subscribers",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"day_of_week\",\"id\":\"column_2965b46298\"},\"x\":{\"column\":\"tv_channel\",\"id\":\"column_2965b46297\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b46295\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b46295\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 26,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "6ebe4f84",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "month_id",
+                      "expression": "`month_id`"
+                    },
+                    {
+                      "name": "column_2965b462150",
+                      "expression": "SUM(`sub_id`)"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs/month per region",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"region\",\"id\":\"column_2965b462152\"},\"x\":{\"column\":\"month_id\",\"id\":\"column_2965b462148\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462150\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"line\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462150\":{\"type\":\"line\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 31,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "b03a0708",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
+                    },
+                    {
+                      "name": "column_2965b462175",
+                      "expression": "SUM(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per gender",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"gender\",\"id\":\"column_2965b462177\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462175\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462175\":{\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 32,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "f0186a5c",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "screen_time_bucket",
+                      "expression": "`screen_time_bucket`"
+                    },
+                    {
+                      "name": "column_2965b462142",
+                      "expression": "COUNT(`sub_id`)"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subscribers Screen Time per Region",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"series\":{\"column\":\"region\",\"id\":\"column_2965b462144\"},\"x\":{\"column\":\"screen_time_bucket\",\"id\":\"column_2965b462140\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462142\",\"transform\":\"COUNT\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462142\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 37,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "9ed2f887",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "ethnic_groups",
+                      "expression": "`ethnic_groups`"
+                    },
+                    {
+                      "name": "column_2965b462185",
+                      "expression": "SUM(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Race",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"ethnic_groups\",\"id\":\"column_2965b462188\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462185\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462185\":{\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 38,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "4c7fafe2",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "screen_time_bucket",
+                      "expression": "`screen_time_bucket`"
+                    },
+                    {
+                      "name": "column_2965b462196",
+                      "expression": "SUM(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Screen_Time",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"screen_time_bucket\",\"id\":\"column_2965b462199\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462196\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"column\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462196\":{\"type\":\"column\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 43,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "76af10cf",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Users Personal Details",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"paginationSize\":\"default\",\"version\":2,\"withRowNumber\":false,\"columns\":[{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"sub_id\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100000,\"title\":\"sub_id\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"month_id\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100001,\"title\":\"month_id\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_of_week\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100002,\"title\":\"day_of_week\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_name\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100003,\"title\":\"day_name\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_classification\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100004,\"title\":\"day_classification\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"watch_hour\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100005,\"title\":\"watch_hour\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"time_of_day\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100006,\"title\":\"time_of_day\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"watch_date\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100007,\"title\":\"watch_date\",\"type\":\"date\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"dateTimeFormat\":\"DD/MM/YYYY\",\"imageHeight\":\"\",\"displayAs\":\"datetime\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"month_name\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100008,\"title\":\"month_name\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"screen_time_bucket\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100009,\"title\":\"screen_time_bucket\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"tv_channel\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100010,\"title\":\"tv_channel\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"region\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100011,\"title\":\"region\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"age_groups\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100012,\"title\":\"age_groups\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"ethnic_groups\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100013,\"title\":\"ethnic_groups\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"gender\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100014,\"title\":\"gender\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"email_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100015,\"title\":\"email_flag\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"sm_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100016,\"title\":\"sm_flag\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"user_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100017,\"title\":\"user_flag\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"}],\"condensed\":true,\"itemsPerPage\":25}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 44,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "8307578e",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs User Status and Demographic Details1",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"paginationSize\":\"default\",\"version\":2,\"withRowNumber\":false,\"columns\":[{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"sub_id\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100000,\"title\":\"sub_id\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"month_id\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100001,\"title\":\"month_id\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_of_week\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100002,\"title\":\"day_of_week\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_name\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100003,\"title\":\"day_name\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"day_classification\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100004,\"title\":\"day_classification\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"watch_hour\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100005,\"title\":\"watch_hour\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"time_of_day\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100006,\"title\":\"time_of_day\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"watch_date\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100007,\"title\":\"watch_date\",\"type\":\"date\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"dateTimeFormat\":\"DD/MM/YYYY\",\"imageHeight\":\"\",\"displayAs\":\"datetime\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"month_name\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100008,\"title\":\"month_name\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"screen_time_bucket\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100009,\"title\":\"screen_time_bucket\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"tv_channel\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100010,\"title\":\"tv_channel\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"region\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100011,\"title\":\"region\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"age_groups\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100012,\"title\":\"age_groups\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"ethnic_groups\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100013,\"title\":\"ethnic_groups\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"gender\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100014,\"title\":\"gender\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"email_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100015,\"title\":\"email_flag\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"sm_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":false,\"allowHTML\":false,\"alignContent\":\"right\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100016,\"title\":\"sm_flag\",\"type\":\"integer\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"numberFormat\":\"0\",\"imageHeight\":\"\",\"displayAs\":\"number\"},{\"imageUrlTemplate\":\"{{ @ }}\",\"useMonospaceFont\":false,\"name\":\"user_flag\",\"linkTextTemplate\":\"{{ @ }}\",\"visible\":true,\"allowHTML\":false,\"alignContent\":\"left\",\"linkTitleTemplate\":\"{{ @ }}\",\"allowSearch\":false,\"imageWidth\":\"\",\"booleanValues\":[\"false\",\"true\"],\"linkOpenInNewTab\":true,\"imageTitleTemplate\":\"{{ @ }}\",\"order\":100017,\"title\":\"user_flag\",\"type\":\"string\",\"highlightLinks\":false,\"linkUrlTemplate\":\"{{ @ }}\",\"preserveWhitespace\":false,\"imageHeight\":\"\",\"displayAs\":\"string\"}],\"condensed\":true,\"itemsPerPage\":25}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 49,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bab23498",
+            "queries": [
+              {
+                "name": "93922135c66a4c1f8ea8fb5dd06089eb",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "time_of_day",
+                      "expression": "`time_of_day`"
+                    },
+                    {
+                      "name": "column_2965b462214",
+                      "expression": "SUM(`sub_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Subs per Time of Day",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"time_of_day\",\"id\":\"column_2965b462217\"},\"y\":[{\"column\":\"sub_id\",\"id\":\"column_2965b462214\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_2965b462214\":{\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "93922135c66a4c1f8ea8fb5dd06089eb"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 50,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "6b7f420d",
+            "queries": [
+              {
+                "name": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_gender",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "gender",
+                      "expression": "`gender`"
+                    },
+                    {
+                      "name": "gender_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": ""
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "gender",
+                    "queryName": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_gender"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "b0b03d91",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"font-size: 24px;\">BRIGHT TV ANALYSIS</span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "afdbb46c",
+            "queries": [
+              {
+                "name": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_month_name",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "month_name",
+                      "expression": "`month_name`"
+                    },
+                    {
+                      "name": "month_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "month_name",
+                    "queryName": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_month_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "91ec02a1",
+            "queries": [
+              {
+                "name": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_day_name",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "day_name",
+                      "expression": "`day_name`"
+                    },
+                    {
+                      "name": "day_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "day_name",
+                    "queryName": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_day_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "8e274a86",
+            "queries": [
+              {
+                "name": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_watch_date",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "watch_date",
+                      "expression": "`watch_date`"
+                    },
+                    {
+                      "name": "watch_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "watch_date",
+                    "queryName": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_watch_date"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "1ffab846",
+            "queries": [
+              {
+                "name": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_region",
+                "query": {
+                  "datasetName": "2a8ef62d",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "region_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "region",
+                    "queryName": "dashboards/01f17405a2dc19f1bdaa08b356e22330/datasets/93922135c66a4c1f8ea8fb5dd06089eb_region"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
